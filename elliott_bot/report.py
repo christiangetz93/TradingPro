@@ -6,7 +6,7 @@ from datetime import datetime
 
 import numpy as np
 
-from .analyzer import TitleReport, fmt
+from .analyzer import TREND_TEXT, TitleReport, fmt
 from .config import BotConfig
 
 SIGNAL_TEXT = {
@@ -26,22 +26,69 @@ DISCLAIMER = (
 )
 
 METHOD = [
-    "Pivots: ZigZag auf drei Wellengraden (Schwelle = Vielfaches der ATR).",
-    "Zählungen: Alle Muster W3/W4/W5/A/B/C auf- und abwärts, die auf dem letzten bestätigten Pivot enden.",
-    "Harte Regeln (Verstoß = verworfen): W2 < 100 % von W1, W3 nie die kürzeste, keine W4/W1-Überlappung, B ≤ 138,2 % von A.",
-    "Richtlinien (Fibonacci-Verhältnisse, Alternation, RSI-Divergenz, Volumen) ergeben einen Qualitätsscore; "
-    "wenige Prüfungen = schwache Evidenz.",
-    "Szenario-Gewichte = geschärfte Scores, inkl. Pseudo-Szenario 'keine klare Zählung'.",
-    "Basis-Wahrscheinlichkeit: Block-Bootstrap-Simulation OHNE Drift (Zufallspfad) des kompletten Ausstiegsplans.",
-    "Wellen-Edge: Verschiebung der Basis proportional zum Szenario-Konsens (konservativer Faktor κ).",
-    "Kalibrierung: Walk-Forward-Test derselben Methode auf der Historie des Titels; der gemessene Vorsprung "
-    "ggü. Zufall wird per Bayes-Mittelung eingerechnet.",
-    "Positionsgröße: Minimum aus fixem Risiko, Bruchteil-Kelly, Portfolio-/Regionen-Heat, Positions- und Cash-Limit.",
+    "Pivots: ZigZag auf drei Wellengraden (Schwelle = 2,5 / 4 / 6 x ATR), kausal – jeder Pivot wird erst ab "
+    "seiner Bestätigung verwendet.",
+    "Zählungen: Muster W3/W4/W5/A/B/C auf- und abwärts, die auf dem letzten bestätigten Pivot enden. Harte Regeln "
+    "(W2 < 100 % von W1, W3 nie die kürzeste, keine W4/W1-Überlappung – auch in der laufenden Welle, B ≤ 138,2 % von A) "
+    "führen zum Verwerfen; Fibonacci-Richtlinien, Alternation, RSI-Divergenz und Volumen ergeben den Qualitätsscore.",
+    "Einstiege (v2): Rücksetzer-Käufe in Korrekturen (W4, A, C) einer Aufwärtsstruktur sowie Impuls-Einstiege (W3/W5) – "
+    "beides nur bei intaktem Aufwärtstrend (Kurs über steigender 200-Tage-Linie). Ausführung zum nächsten Eröffnungskurs.",
+    "Ausstieg (v2): Stop an der Elliott-Invalidierung, Chandelier-Trailing-Stop 4 ATR ab Einstieg, Struktur-Exit, "
+    "maximale Haltedauer.",
+    "Kosten: feste und prozentuale Ordergebühren, Spread und Slippage für jede Order; Trades mit Kosten über 15 % des "
+    "Risikos werden nicht eröffnet.",
+    "Wahrscheinlichkeiten: Bayes-Mischung aus Zufallspfad-Simulation (Block-Bootstrap ohne Drift) und der gemessenen "
+    "Trefferquote des Setup-Typs im Backtest auf echten Daten.",
+    "Positionsgröße: Minimum aus fixem Risiko (inkl. Gebühren), Bruchteil-Kelly, Portfolio-Heat, Regionen-/"
+    "Korrelations-Heat, Positionslimit und Cash-Reserve; Drawdown-Bremse.",
+    "Validierung (17 echte Instrumente mit Tageshochs/-tiefs): Regeln auf 1990–2010 gewählt (CAGR +2,5 %, max. "
+    "Drawdown −8,4 %), Out-of-Sample 2011–2021 nur ≈ +0,5 % pro Jahr nach Kosten – gleichauf mit zufälligen "
+    "Einstiegen und weit unter Kaufen & Halten (S&P 500: +14,1 %). Die Elliott-Richtungsprognose traf in ≈ 50 % "
+    "der Fälle (Münzwurf-Niveau). Belegt ist der Schutz (Kosten-/Risikofilter, geringere Drawdowns), nicht ein Ertragsvorteil.",
 ]
 
 
 def _pct(x: float | None) -> str:
     return "–" if x is None or not np.isfinite(x) else f"{x:.0%}"
+
+
+def probability_rows(r: TitleReport) -> list[tuple[str, str, str]]:
+    p, m0, m = r.decision.plan, r.mc_random, r.mc_model
+    if p is None or m0 is None:
+        return []
+    rows = [("Zufallspfad (Benchmark ohne Prognose)", f"{m0.p_tp1:.0%} / {m0.p_main:.0%}",
+             f"P(1. Ziel) / P(Hauptziel) vor Stop · E[R] {m0.mean_r:+.2f}")]
+    s = r.setup_stat
+    if s:
+        rows.append((f"Backtest Setup-Typ „{p.setup_key}“", f"{s['P(Teilziel 1)']:.0%} / {s['P(Hauptziel)']:.0%}",
+                     f"{s['Trades']} Trades auf echten Daten · Treffer {s['Trefferquote']:.0%} · Ø {s['Ø R']:+.2f} R"))
+    else:
+        rows.append(("Backtest Setup-Typ", "–", "keine Statistik vorhanden"))
+    bt = r.ticker_bt
+    if bt and bt.get("Trades"):
+        rows.append((f"Backtest dieses Titels ({bt['Zeitraum']})", f"{bt['TP1 erreicht']:.0%} erreicht 1. Ziel",
+                     f"{bt['Trades']} Trades · Treffer {bt['Trefferquote']:.0%} · Ø {bt['Ø R']:+.2f} R · PF {bt['Profitfaktor']:.2f}"))
+    rows.append(("Kombiniert (gewichtete Mischung)", f"{_pct(r.p_tp1)} / {_pct(r.p_main)}",
+                 "geschätzte Wahrscheinlichkeit, 1. Ziel bzw. Hauptziel vor dem Stop zu erreichen"))
+    if r.exp_r is not None:
+        rows.append(("Erwartungswert nach allen Kosten", f"{r.exp_r:+.2f} R",
+                     "geschrumpfter Mittelwert des Setup-Typs (Backtest)" if s else
+                     "nur Zufallspfad-Simulation – keine Backtest-Statistik für diesen Setup-Typ"))
+    if m is not None:
+        rows.append(("Simulierte Spannweite 5 % / 95 %", f"{m.quantile(0.05):+.2f} / {m.quantile(0.95):+.2f} R",
+                     f"P(Verlust) {m.p_loss:.0%} · CVaR 5 % {m.cvar5:+.2f} R"))
+    return rows
+
+
+def cost_rows(r: TitleReport, cfg: BotConfig) -> list[tuple[str, str, str]]:
+    c = r.costs
+    if not c:
+        return []
+    cur = cfg.budget.currency
+    k = cfg.costs
+    return [("Kauf", f"{fmt(c['Kauf'])} {cur}", f"Gebühr {fmt(k.broker_fee(r.size.invest))} {cur} + Spread/Slippage"),
+            ("Verkäufe", f"{fmt(c['Verkäufe'])} {cur}", f"{c['Orders'] - 1:.0f} Order(s)"),
+            ("Gesamt", f"{fmt(c['Gesamt'])} {cur}", f"{c['in % der Position']:.2%} der Position · {c['in R']:.0%} des Risikos")]
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +107,7 @@ def to_markdown(reports: list[TitleReport], cfg: BotConfig, header_lines: list[s
             f"| {r.fund.ticker} | {r.fund.region} | **{r.signal}** | "
             f"{r.analysis.primary.state if r.analysis.primary else '–'} | "
             f"{f'{p.crv:.1f}' if p else '–'} | {_pct(r.p_final)} | "
-            f"{f'{r.mc_model.mean_r:+.2f}' if r.mc_model else '–'} | "
+            f"{f'{r.exp_r:+.2f}' if r.exp_r is not None else '–'} | "
             f"{f'{r.size.units:g}' if r.size and r.tradeable else '–'} | "
             f"{f'{fmt(r.size.risk_amount, 0)} {cur}' if r.size and r.tradeable else '–'} |")
     for r in reports:
@@ -69,7 +116,7 @@ def to_markdown(reports: list[TitleReport], cfg: BotConfig, header_lines: list[s
         for why in r.reasons:
             out.append(f"- ⚠ {why}")
         st = r.stats
-        out += ["", f"Kurs {fmt(r.close)} ({r.series.currency}, {r.series.source}) · ATR {fmt(r.atr)} "
+        out += ["", f"Trend: {TREND_TEXT[r.trend]} · Kurs {fmt(r.close)} ({r.series.currency}, {r.series.source}) · ATR {fmt(r.atr)} "
                 f"({st['atr_pct']:.1%}) · Vola 1J {st['vola_1j']:.0%} · Perf. 1J {st['perf_1j']:+.1%} · "
                 f"Max. Drawdown 1J {st['mdd_1j']:.1%}", ""]
         wa = r.analysis
@@ -91,26 +138,17 @@ def to_markdown(reports: list[TitleReport], cfg: BotConfig, header_lines: list[s
                     f"- Stop: {fmt(p.stop)} (Risiko je Anteil inkl. Kosten {fmt(p.risk_per_unit)})"]
             out += [f"- Ziel {i}: {fmt(v)} ({n})" for i, (n, v) in enumerate(p.levels, 1)]
             out += [f"- CRV bis Hauptziel ({p.main_target[0]}): **{p.crv:.2f}**"]
-            if r.mc_model:
-                c = r.calib
-                out += ["", "### Wahrscheinlichkeiten", "",
-                        f"- Zufallspfad (kein Wellen-Vorteil): P(Hauptziel vor Stop) {r.p_random:.0%}, "
-                        f"E[R] {r.mc_random.mean_r:+.2f}",
-                        f"- Szenario-Konsens (Edge) {r.edge:+.0%} → Modell {r.p_model:.0%}",
-                        (f"- Walk-Forward-Kalibrierung: {c.signals} Signale, Trefferquote {_pct(c.hit_rate)} "
-                         f"vs. Basis {_pct(c.baseline_mean)}, Ø {c.avg_r:+.2f} R" if c else "- Keine Kalibrierung"),
-                        f"- **Final: P(Hauptziel) {r.p_final:.0%} · P(Teilziel 1) {r.mc_model.p_tp1:.0%} · "
-                        f"P(Stop vor TP1) {r.mc_model.p_stop_first:.0%} · P(Zeitstopp) {r.mc_model.p_time_exit:.0%}**",
-                        f"- Erwartungswert {r.mc_model.mean_r:+.2f} R · 5-%-Quantil {r.mc_model.quantile(0.05):+.2f} R · "
-                        f"95-%-Quantil {r.mc_model.quantile(0.95):+.2f} R"]
+            pr = probability_rows(r)
+            if pr:
+                out += ["", "### Wahrscheinlichkeiten & Erwartung", "", "| | Wert | Erläuterung |", "|---|---|---|"]
+                out += [f"| {a} | {b} | {c} |" for a, b, c in pr]
             if r.size:
                 s = r.size
-                out += ["", "### Positionsgröße & Budget", "",
+                out += ["", "### Positionsgröße, Kosten & Budget", "",
                         f"- {s.units:g} Anteile ≈ {fmt(s.invest, 0)} {cur} "
-                        f"({s.invest / cfg.budget.capital:.1%} des Budgets), Risiko {fmt(s.risk_amount, 0)} {cur} "
-                        f"({s.risk_pct:.2%}) – begrenzt durch **{s.binding}**",
-                        f"- Volles Kelly {s.kelly_full:.1%} des Kapitals als Risiko – genutzt wird höchstens "
-                        f"{cfg.budget.kelly_fraction:.0%} davon"]
+                        f"({s.invest / cfg.budget.capital:.1%} des Budgets), Risiko inkl. Gebühren {fmt(s.risk_amount, 0)} {cur} "
+                        f"({s.risk_pct:.2%}) – begrenzt durch **{s.binding}**"]
+                out += [f"- Kosten {a}: {b} ({c})" for a, b, c in cost_rows(r, cfg)]
                 out += [f"- {n}" for n in s.notes]
         if r.exit_rules:
             out += ["", "### Ausstiegsstrategie", ""] + [f"{i}. {t}" for i, t in enumerate(r.exit_rules, 1)]
@@ -261,13 +299,13 @@ def to_html(reports: list[TitleReport], cfg: BotConfig, header_lines: list[str])
          f"<body><main><h1>Elliott-Wave-Report</h1><p class='sub'>{datetime.now():%d.%m.%Y %H:%M} · "
          + " · ".join(e(x) for x in header_lines) + "</p>"]
     h.append("<div class='card tbl'><table><tr><th>Titel</th><th>Region</th><th>Signal</th><th>Zählung</th>"
-             "<th>CRV</th><th>P(Ziel)</th><th>E[R]</th><th>Stück</th><th>Risiko</th></tr>")
+             "<th>CRV</th><th>P(Ziel)</th><th>E[R] netto</th><th>Stück</th><th>Risiko</th></tr>")
     for r in reports:
         p = r.decision.plan
         h.append(f"<tr><td><a href='#{e(r.fund.ticker)}'>{e(r.fund.ticker)}</a></td><td>{e(r.fund.region)}</td>"
                  f"<td>{_badge(r.signal)}</td><td>{r.analysis.primary.state if r.analysis.primary else '–'}</td>"
                  f"<td>{f'{p.crv:.1f}' if p else '–'}</td><td>{_pct(r.p_final)}</td>"
-                 f"<td>{f'{r.mc_model.mean_r:+.2f} R' if r.mc_model else '–'}</td>"
+                 f"<td>{f'{r.exp_r:+.2f} R' if r.exp_r is not None else '–'}</td>"
                  f"<td>{f'{r.size.units:g}' if r.tradeable else '–'}</td>"
                  f"<td>{f'{fmt(r.size.risk_amount, 0)} {cur}' if r.tradeable else '–'}</td></tr>")
     h.append("</table></div>")
@@ -283,7 +321,8 @@ def to_html(reports: list[TitleReport], cfg: BotConfig, header_lines: list[str])
             h.append("<ul>" + "".join(f"<li class='warn'>{e(x)}</li>" for x in r.reasons) + "</ul>")
         h.append("<div class='kpis'>" + "".join(
             f"<div class='kpi'><span>{k}</span><b>{v}</b></div>" for k, v in [
-                ("Kurs", f"{fmt(r.close)} {e(r.series.currency)}"), ("ATR (14)", f"{fmt(r.atr)} · {st['atr_pct']:.1%}"),
+                ("Trend (200 Tage)", TREND_TEXT[r.trend]), ("Kurs", f"{fmt(r.close)} {e(r.series.currency)}"),
+                ("ATR (14)", f"{fmt(r.atr)} · {st['atr_pct']:.1%}"),
                 ("Volatilität 1J", f"{st['vola_1j']:.0%}"), ("Performance 1J", f"{st['perf_1j']:+.1%}"),
                 ("Max. Drawdown 1J", f"{st['mdd_1j']:.1%}"), ("Datenquelle", e(r.series.source))]) + "</div>")
         h.append(_svg_chart(r))
@@ -315,28 +354,21 @@ def to_html(reports: list[TitleReport], cfg: BotConfig, header_lines: list[str])
             rows += [("CRV", f"{p.crv:.2f}", f"bis Hauptziel {p.main_target[0]}")]
             h.append("<h3>Chance / Risiko</h3><div class='tbl'><table>" + "".join(
                 f"<tr><th>{a}</th><td>{b}</td><td>{e(c)}</td></tr>" for a, b, c in rows) + "</table></div>")
-            if r.mc_model:
-                c, m = r.calib, r.mc_model
-                rows = [("Zufallspfad (kein Wellen-Vorteil)", f"{r.p_random:.0%}", f"E[R] {r.mc_random.mean_r:+.2f}"),
-                        ("Szenario-Konsens → Modell", f"{r.p_model:.0%}", f"Edge {r.edge:+.0%}"),
-                        ("Walk-Forward-Historie", _pct(c.hit_rate) if c else "–",
-                         f"{c.signals} Signale, Basis {_pct(c.baseline_mean)}, Ø {c.avg_r:+.2f} R" if c and c.signals else "keine Signale"),
-                        ("<b>Final: Hauptziel vor Stop</b>", f"<b>{r.p_final:.0%}</b>", ""),
-                        ("Teilziel 1 vor Stop", f"{m.p_tp1:.0%}", "danach Stop auf Einstand"),
-                        ("Stop vor Teilziel 1", f"{m.p_stop_first:.0%}", ""),
-                        ("Zeitstopp", f"{m.p_time_exit:.0%}", f"nach {p.time_stop_bars} Tagen"),
-                        ("Erwartungswert", f"{m.mean_r:+.2f} R", f"Median {m.median_r:+.2f} R"),
-                        ("Spannweite 5 % / 95 %", f"{m.quantile(0.05):+.2f} / {m.quantile(0.95):+.2f} R",
-                         f"CVaR 5 %: {m.cvar5:+.2f} R")]
-                h.append("<h3>Wahrscheinlichkeiten</h3><div class='tbl'><table>" + "".join(
-                    f"<tr><th>{a}</th><td>{b}</td><td>{e(cc)}</td></tr>" for a, b, cc in rows) + "</table></div>")
+            pr = probability_rows(r)
+            if pr:
+                h.append("<h3>Wahrscheinlichkeiten &amp; Erwartung</h3><div class='tbl'><table>" + "".join(
+                    f"<tr><th>{e(a)}</th><td>{e(b)}</td><td>{e(cc)}</td></tr>" for a, b, cc in pr) + "</table></div>")
             if r.size:
                 s = r.size
-                h.append("<h3>Positionsgröße &amp; Budget</h3>"
+                h.append("<h3>Positionsgröße, Kosten &amp; Budget</h3>"
                          f"<p><b>{s.units:g} Anteile</b> ≈ {fmt(s.invest, 0)} {cur} ({s.invest / cfg.budget.capital:.1%} des Budgets) · "
-                         f"Risiko bis Stop {fmt(s.risk_amount, 0)} {cur} ({s.risk_pct:.2%}) · begrenzt durch <b>{e(s.binding)}</b></p>"
-                         "<div class='tbl'><table><tr><th>Grenze</th><th>max. Anteile</th></tr>" + "".join(
-                             f"<tr><td>{e(k)}</td><td>{v:,.1f}</td></tr>" for k, v in s.limits.items()) + "</table></div>")
+                         f"Risiko bis Stop inkl. Gebühren {fmt(s.risk_amount, 0)} {cur} ({s.risk_pct:.2%}) · begrenzt durch <b>{e(s.binding)}</b></p>")
+                cr = cost_rows(r, cfg)
+                if cr:
+                    h.append("<div class='tbl'><table>" + "".join(
+                        f"<tr><th>Kosten {e(a)}</th><td>{e(b)}</td><td>{e(cc)}</td></tr>" for a, b, cc in cr) + "</table></div>")
+                h.append("<div class='tbl'><table><tr><th>Grenze</th><th>max. Anteile</th></tr>" + "".join(
+                    f"<tr><td>{e(k)}</td><td>{v:,.1f}</td></tr>" for k, v in s.limits.items()) + "</table></div>")
                 if s.notes:
                     h.append("<ul>" + "".join(f"<li>{e(x)}</li>" for x in s.notes) + "</ul>")
         if r.exit_rules:

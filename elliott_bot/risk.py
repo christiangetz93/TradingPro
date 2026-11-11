@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from .config import BudgetConfig
+from .config import BudgetConfig, CostConfig
 
 
 @dataclass
@@ -44,6 +44,7 @@ class PositionSize:
     kelly_full: float
     limits: dict[str, float]
     notes: list[str] = field(default_factory=list)
+    fixed_fees: float = 0.0          # erwartete Fix-/Mindestgebühren aller Orders des Trades
 
     @property
     def ok(self) -> bool:
@@ -60,7 +61,15 @@ def drawdown_factor(book: BookState, bud: BudgetConfig) -> tuple[float, str | No
 
 
 def size_position(entry: float, risk_per_unit: float, mean_r: float, second_moment_r: float,
-                  region: str, book: BookState, bud: BudgetConfig) -> PositionSize:
+                  region: str, book: BookState, bud: BudgetConfig, costs: CostConfig | None = None,
+                  n_orders: int = 4) -> PositionSize:
+    """Positionsgröße als Minimum aller Grenzen.
+
+    ``risk_per_unit`` enthält bereits die volumenabhängigen Kosten (Spread, Slippage,
+    %-Gebühr) für Ein- und Ausstieg. Fixe Ordergebühren (``n_orders`` Orders: Kauf +
+    Teilverkäufe) werden zusätzlich vom Risikobudget abgezogen, damit der Verlust
+    am Stop inklusive aller Gebühren das Budget nicht überschreitet.
+    """
     notes: list[str] = []
     dd_f, dd_note = drawdown_factor(book, bud)
     if dd_note:
@@ -71,12 +80,25 @@ def size_position(entry: float, risk_per_unit: float, mean_r: float, second_mome
         "Fixes Risiko je Trade": bud.risk_per_trade * dd_f * eq,
         "Bruchteil-Kelly": max(0.0, bud.kelly_fraction * kelly) * eq,
         "Portfolio-Heat": max(0.0, bud.max_portfolio_heat * eq - book.open_risk),
-        "Regionen-Heat": max(0.0, bud.max_cluster_heat * eq - book.cluster_risk.get(region, 0.0)),
+        "Regionen-/Korrelations-Heat": max(0.0, bud.max_cluster_heat * eq - book.cluster_risk.get(region, 0.0)),
     }
-    unit_caps = {k: v / risk_per_unit for k, v in risk_caps.items()}
-    cost = bud.fee_pct + bud.slippage_pct
+    var = costs.variable_rate() if costs else 0.0
+
+    def fixed_fees(units: float) -> float:
+        if costs is None or units <= 0:
+            return 0.0
+        value = units * entry
+        n_exit = max(1, n_orders - 1)
+        return costs.fixed_part(value) + (n_orders - 1) * costs.fixed_part(value / n_exit)
+
+    unit_caps: dict[str, float] = {}
+    for k, budget in risk_caps.items():
+        u = budget / risk_per_unit
+        for _ in range(2):                      # Fixgebühren hängen schwach von der Größe ab
+            u = max(0.0, (budget - fixed_fees(u)) / risk_per_unit)
+        unit_caps[k] = u
     unit_caps["Max. Positionsanteil"] = bud.max_position_pct * eq / entry
-    unit_caps["Verfügbares Cash"] = max(0.0, book.cash - bud.min_cash_reserve_pct * eq) / (entry * (1 + cost))
+    unit_caps["Verfügbares Cash"] = max(0.0, book.cash - bud.min_cash_reserve_pct * eq) / (entry * (1 + var))
     binding = min(unit_caps, key=unit_caps.get)
     units = unit_caps[binding]
     if not bud.allow_fractional_shares:
@@ -86,7 +108,8 @@ def size_position(entry: float, risk_per_unit: float, mean_r: float, second_mome
     units = max(0.0, units)
     if kelly <= 0:
         notes.append("Kelly ≤ 0: negativer Erwartungswert – kein Einsatz")
-    risk_amount = units * risk_per_unit
+    ff = fixed_fees(units)
+    risk_amount = units * risk_per_unit + ff
     return PositionSize(units=units, invest=units * entry, risk_amount=risk_amount,
                         risk_pct=risk_amount / eq if eq else 0.0, binding=binding,
-                        kelly_full=kelly, limits=unit_caps, notes=notes)
+                        kelly_full=kelly, limits=unit_caps, notes=notes, fixed_fees=ff)

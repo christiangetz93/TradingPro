@@ -1,50 +1,66 @@
 # Beispielkonfiguration – kopieren nach config.toml und anpassen:
 #   python -m elliott_bot scan --config config.toml
+# Die Standardwerte ("v2") wurden per Backtest auf echten Kursdaten ausgewählt (siehe README).
 
 [budget]
 capital = 10000.0            # verfügbares Budget
 currency = "EUR"
-risk_per_trade = 0.01        # max. 1 % Verlust je Trade (bis zum Stop)
+risk_per_trade = 0.01        # max. 1 % Verlust je Trade bis zum Stop – INKLUSIVE aller Gebühren
 max_portfolio_heat = 0.05    # max. 5 % offenes Risiko über alle Positionen
-max_cluster_heat = 0.025     # max. 2,5 % offenes Risiko je Region
+max_cluster_heat = 0.025     # max. 2,5 % offenes Risiko je Region bzw. korreliertem Cluster
 max_position_pct = 0.20      # max. 20 % des Kapitals in einem Titel
+max_positions = 8
 min_cash_reserve_pct = 0.10  # 10 % bleiben immer Cash
 kelly_fraction = 0.25        # höchstens Viertel-Kelly
+correlation_heat = true      # korrelierte Positionen (z. B. VWO + IEMG) teilen sich das Cluster-Risiko
 allow_fractional_shares = false
 allow_short = false
-fee_pct = 0.001              # 0,1 % Gebühren je Seite
-slippage_pct = 0.0005
 drawdown_soft = 0.10         # ab 10 % Depot-Drawdown: Risiko halbieren
 drawdown_hard = 0.20         # ab 20 %: keine neuen Trades
 
+# ---- Handelskosten: EIN Profil wählen -------------------------------------
+# Neobroker (z. B. 1 € je Order) – Standard
+[costs]
+fee_fixed = 1.0
+fee_pct = 0.0
+fee_min = 0.0
+spread_pct = 0.0015          # volle Geld-Brief-Spanne; Schwellenländer-ETFs oft 0,2–0,4 %
+slippage_pct = 0.0005
+max_fee_ratio = 0.005        # Teilverkäufe werden zusammengelegt, wenn die Gebühr > 0,5 % der Teilorder wäre
+
+# Direktbank (Beispiel: 4,90 € + 0,25 %, mind. 9,90 €) – statt des Blocks oben verwenden:
+# [costs]
+# fee_fixed = 4.9
+# fee_pct = 0.0025
+# fee_min = 9.9
+# spread_pct = 0.0015
+# slippage_pct = 0.0005
+
 [filters]
-min_crv = 2.0
-min_probability = 0.20       # P(Hauptziel vor Stop)
-min_tp1_probability = 0.45   # P(Teilziel 1 vor Stop)
-min_expected_r = 0.15
+min_crv = 2.0                # Impuls-Einstiege: CRV bis Hauptziel
+min_crv_pullback = 1.0       # Rücksetzer-Käufe: CRV bis zum Korrekturbeginn
 min_consensus = 0.55
 min_count_score = 0.40
-max_crv_for_probability = 8.0
+max_cost_r = 0.15            # Kosten dürfen max. 15 % des Risikos ausmachen, sonst kein Trade
+
+[strategy]
+entry_style = "both"         # "both" | "pullback" (nur Korrekturen kaufen) | "impulse" (v1-Verhalten)
+trend_filter = "sma200"      # nur Long bei Kurs über steigender 200-Tage-Linie; "none" = aus
+trade_setups = false         # Limit-/Bestätigungs-Orders in der Fibonacci-Zone (im Backtest ohne Vorteil)
+use_setup_stats = false      # true = nur Setup-Typen mit positiver Backtest-Statistik
 
 [exits]
+mode = "trail"               # trail | scale_be | scale | half | target
+trail_atr_mult = 4.0
 stop_atr_buffer = 0.5
 max_stop_atr = 6.0
-min_stop_atr = 1.0
-tp1_fraction = 0.3333
-tp2_fraction = 0.3333
-trail_atr_mult = 3.0
-tight_trail_atr_mult = 2.0
 time_stop_factor = 1.5
-min_time_stop_bars = 10
 
 [analysis]
-lookback_bars = 750
 zigzag_atr_mults = [2.5, 4.0, 6.0]
-require_confirmed_pivot = true
 unclear_weight = 0.45
-edge_kappa = 0.25
 mc_paths = 3000
-calibrate = true
+ticker_backtest = true       # Regelwerk zusätzlich auf der Historie jedes Titels testen
 
 [selection]
 n_titles = 5

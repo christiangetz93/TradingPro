@@ -12,8 +12,18 @@ def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
         (df["high"] - prev_close).abs(),
         (df["low"] - prev_close).abs(),
     ], axis=1).max(axis=1)
-    out = tr.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
-    return out.bfill()
+    # kausal: kein Auffüllen mit späteren Werten (frühere Version nutzte bfill)
+    return tr.ewm(alpha=1 / period, adjust=False).mean()
+
+
+def trend_state(close: pd.Series, length: int = 200, slope_bars: int = 20) -> pd.Series:
+    """+1 = Aufwärtstrend (Kurs > steigender SMA), -1 = Abwärtstrend, 0 = neutral/unbekannt."""
+    sma = close.rolling(length, min_periods=length).mean()
+    rising = sma > sma.shift(slope_bars)
+    falling = sma < sma.shift(slope_bars)
+    up = (close > sma) & rising
+    down = (close < sma) & falling
+    return pd.Series(np.where(up, 1, np.where(down, -1, 0)), index=close.index)
 
 
 def rsi(close: pd.Series, period: int = 14) -> pd.Series:

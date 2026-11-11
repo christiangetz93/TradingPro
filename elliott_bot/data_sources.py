@@ -34,6 +34,17 @@ class PriceSeries:
     synthetic: bool = False
 
 
+def is_close_only(df: pd.DataFrame, tol: float = 0.95) -> bool:
+    """True, wenn Hoch/Tief nur aus Eröffnungs-/Schlusskursen bestehen (keine echten Intraday-Spannen).
+
+    Mit solchen Daten werden Stops, die im Tagesverlauf gerissen worden wären, nicht erkannt –
+    Backtests und Simulationen von Stop-Strategien fallen dann zu optimistisch aus.
+    """
+    lo = np.isclose(df["low"], np.minimum(df["open"], df["close"]))
+    hi = np.isclose(df["high"], np.maximum(df["open"], df["close"]))
+    return bool((lo & hi).mean() >= tol)
+
+
 def _clean(df: pd.DataFrame) -> pd.DataFrame:
     df = df[COLUMNS].astype(float)
     df = df[~df.index.duplicated(keep="last")].sort_index()

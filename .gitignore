@@ -5,3 +5,5 @@ __pycache__/
 reports/
 paper_portfolio.json
 .venv/
+data/open/
+*.egg-info/

@@ -1,0 +1,57 @@
+{
+ "meta": {
+  "quelle": "Backtest auf 17 echten Instrumenten mit Tageshochs/-tiefs (SPY, QQQ, IWM, EEM, USO, Gold, S&P 500, NASDAQ, AAPL, AIG, BAC, IBM, GOOG, FB, NVDA, ORCL, YHOO), 1990–2021",
+  "einstieg": "nächster Eröffnungskurs nach Signal",
+  "kosten": "Spread 0,15 %, Slippage 0,05 % je Order (ohne Fixgebühren)",
+  "konfiguration": {
+   "strategy.trend_filter": "sma200",
+   "strategy.entry_style": "both",
+   "exits.mode": "trail",
+   "exits.trail_atr_mult": 4.0
+  },
+  "trades": 435,
+  "hinweis": "Out-of-Sample 2011–2021 lag das Regelwerk nach Kosten bei ≈ 0 R je Trade – Werte nicht als Prognose verstehen."
+ },
+ "rows": {
+  "M-W5-mit Trend": {
+   "n": 76,
+   "sum_r": 10.504973993591063,
+   "sum_r2": 151.99371292698083,
+   "wins": 32,
+   "tp1": 26,
+   "main": 8
+  },
+  "P-W4-mit Trend": {
+   "n": 163,
+   "sum_r": 20.920175072639278,
+   "sum_r2": 458.40872922446493,
+   "wins": 64,
+   "tp1": 51,
+   "main": 51
+  },
+  "M-W3-mit Trend": {
+   "n": 100,
+   "sum_r": 28.743810975990268,
+   "sum_r2": 271.8954165280208,
+   "wins": 48,
+   "tp1": 27,
+   "main": 6
+  },
+  "P-C-mit Trend": {
+   "n": 40,
+   "sum_r": 4.731945482942067,
+   "sum_r2": 49.97130307520196,
+   "wins": 20,
+   "tp1": 13,
+   "main": 13
+  },
+  "P-A-mit Trend": {
+   "n": 56,
+   "sum_r": -4.275414596830464,
+   "sum_r2": 78.72269391243721,
+   "wins": 17,
+   "tp1": 11,
+   "main": 11
+  }
+ }
+}

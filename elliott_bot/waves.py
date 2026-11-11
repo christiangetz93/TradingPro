@@ -300,24 +300,48 @@ def evaluate_count(points: list[Pivot], state: str, direction: int, degree: floa
     )
 
 
-def analyze_waves(df: pd.DataFrame, atr_s: pd.Series, rsi_s: pd.Series,
-                  cfg: AnalysisConfig) -> WaveAnalysis:
-    offset = max(0, len(df) - cfg.lookback_bars)
-    win = df.iloc[offset:]
-    atr_w = atr_s.iloc[offset:]
-    vol = win["volume"].to_numpy(float)
-    arr = _Arrays(win["high"].to_numpy(float), win["low"].to_numpy(float),
-                  win["close"].to_numpy(float), rsi_s.iloc[offset:].to_numpy(float),
-                  vol, bool(np.nansum(vol) > 0))
+class WaveContext:
+    """Vorberechnete, kausale Pivots je Wellengrad für eine Kursreihe.
 
-    found: dict[tuple, WaveCount] = {}
-    pivots_by_degree: dict[float, list[Pivot]] = {}
-    for mult in cfg.zigzag_atr_mults:
-        piv = zigzag(win, atr_w, mult)
-        pivots_by_degree[mult] = piv
-        n = len(piv)
-        anchors = (n - 2,) if cfg.require_confirmed_pivot else (n - 1, n - 2)
-        for anchor in anchors:
+    Der ZigZag läuft einmal über die gesamte Historie. Jeder Pivot kennt den Bar,
+    an dem er bestätigt wurde; ``analyze(t)`` verwendet nur Pivots, die bis t
+    bestätigt waren, und nur Kurse bis einschließlich t. Damit ist die Analyse
+    zu jedem historischen Zeitpunkt frei von Zukunftsinformationen und schnell
+    genug für tägliche Backtests.
+    """
+
+    def __init__(self, df: pd.DataFrame, atr_s: pd.Series, rsi_s: pd.Series, cfg: AnalysisConfig):
+        self.cfg = cfg
+        vol = df["volume"].to_numpy(float)
+        self.arr = _Arrays(df["high"].to_numpy(float), df["low"].to_numpy(float),
+                           df["close"].to_numpy(float), rsi_s.to_numpy(float), vol,
+                           bool(np.nansum(vol) > 0))
+        self.pivots: dict[float, list[Pivot]] = {}
+        self._confirm: dict[float, np.ndarray] = {}
+        for mult in cfg.zigzag_atr_mults:
+            piv = [p for p in zigzag(df, atr_s, mult) if p.confirmed]
+            self.pivots[mult] = piv
+            self._confirm[mult] = np.array([p.confirm_idx for p in piv], dtype=int)
+
+    def __len__(self) -> int:
+        return len(self.arr.close)
+
+    def confirmed_at(self, mult: float, t: int) -> list[Pivot]:
+        k = int(np.searchsorted(self._confirm[mult], t, side="right"))
+        return self.pivots[mult][:k]
+
+    def analyze(self, t: int | None = None) -> WaveAnalysis:
+        cfg = self.cfg
+        t = len(self) - 1 if t is None else t
+        a = self.arr
+        arr = _Arrays(a.high[:t + 1], a.low[:t + 1], a.close[:t + 1], a.rsi[:t + 1],
+                      a.volume[:t + 1], a.has_volume)
+        found: dict[tuple, WaveCount] = {}
+        pivots_by_degree: dict[float, list[Pivot]] = {}
+        for mult in cfg.zigzag_atr_mults:
+            piv = self.confirmed_at(mult, t)
+            pivots_by_degree[mult] = piv
+            anchor = len(piv) - 1               # Zählung endet auf dem letzten bestätigten Pivot
             for state, (npts, *_rest) in STATES.items():
                 start = anchor - (npts - 1)
                 if start < 0:
@@ -330,13 +354,19 @@ def analyze_waves(df: pd.DataFrame, atr_s: pd.Series, rsi_s: pd.Series,
                     if wc.key not in found or found[wc.key].score < wc.score:
                         found[wc.key] = wc
 
-    counts = sorted(found.values(), key=lambda c: c.score, reverse=True)
-    raw = np.array([c.score ** cfg.sharpness for c in counts])
-    unclear = cfg.unclear_weight ** cfg.sharpness
-    total = raw.sum() + unclear
-    for c, w in zip(counts, raw):
-        c.weight = float(w / total)
-    p_up = sum(c.weight for c in counts if c.next_dir > 0)
-    p_down = sum(c.weight for c in counts if c.next_dir < 0)
-    return WaveAnalysis(counts=counts, p_up=float(p_up), p_down=float(p_down),
-                        p_unclear=float(unclear / total), pivots=pivots_by_degree, offset=offset)
+        counts = sorted(found.values(), key=lambda c: c.score, reverse=True)
+        raw = np.array([c.score ** cfg.sharpness for c in counts])
+        unclear = cfg.unclear_weight ** cfg.sharpness
+        total = raw.sum() + unclear
+        for c, w in zip(counts, raw):
+            c.weight = float(w / total)
+        p_up = sum(c.weight for c in counts if c.next_dir > 0)
+        p_down = sum(c.weight for c in counts if c.next_dir < 0)
+        return WaveAnalysis(counts=counts, p_up=float(p_up), p_down=float(p_down),
+                            p_unclear=float(unclear / total), pivots=pivots_by_degree, offset=0)
+
+
+def analyze_waves(df: pd.DataFrame, atr_s: pd.Series, rsi_s: pd.Series,
+                  cfg: AnalysisConfig) -> WaveAnalysis:
+    """Analyse zum letzten verfügbaren Kurs."""
+    return WaveContext(df, atr_s, rsi_s, cfg).analyze()

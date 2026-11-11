@@ -19,6 +19,7 @@ class Pivot:
     price: float
     kind: str          # "H" (Hoch) oder "L" (Tief)
     confirmed: bool = True
+    confirm_idx: int = -1   # Bar, an dem der Pivot bestätigt wurde (kausal nutzbar ab hier)
 
 
 def zigzag(df: pd.DataFrame, atr_series: pd.Series, mult: float) -> list[Pivot]:
@@ -41,23 +42,23 @@ def zigzag(df: pd.DataFrame, atr_series: pd.Series, mult: float) -> list[Pivot]:
                 lo_i = i
             if high[hi_i] - low[lo_i] >= thr[i]:
                 if lo_i < hi_i:
-                    pivots.append(Pivot(lo_i, dates[lo_i], low[lo_i], "L"))
+                    pivots.append(Pivot(lo_i, dates[lo_i], low[lo_i], "L", True, i))
                     trend, ext = 1, hi_i
                 else:
-                    pivots.append(Pivot(hi_i, dates[hi_i], high[hi_i], "H"))
+                    pivots.append(Pivot(hi_i, dates[hi_i], high[hi_i], "H", True, i))
                     trend, ext = -1, lo_i
             continue
         if trend == 1:
             if high[i] >= high[ext]:
                 ext = i
             elif high[ext] - low[i] >= thr[i]:
-                pivots.append(Pivot(ext, dates[ext], high[ext], "H"))
+                pivots.append(Pivot(ext, dates[ext], high[ext], "H", True, i))
                 trend, ext = -1, i
         else:
             if low[i] <= low[ext]:
                 ext = i
             elif high[i] - low[ext] >= thr[i]:
-                pivots.append(Pivot(ext, dates[ext], low[ext], "L"))
+                pivots.append(Pivot(ext, dates[ext], low[ext], "L", True, i))
                 trend, ext = 1, i
 
     if trend != 0:

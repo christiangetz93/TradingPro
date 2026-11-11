@@ -1,14 +1,71 @@
 # TradingPro – Elliott-Wave-Bot für Fonds & ETFs
 
-Ein Analyse- und Paper-Trading-Bot, der nach der **Elliott-Wellen-Theorie** arbeitet:
+Analyse-, Backtest- und Paper-Trading-Bot nach der **Elliott-Wellen-Theorie**:
 
-1. Er zieht **zufällig Titel aus ~200 großen Fonds/ETFs**. Wachstumsmärkte (Schwellenländer) und Wachstumsthemen werden bevorzugt (Gewicht 3x bzw. 2x, max. 2 Titel je Region).
-2. Für jeden Titel erstellt er eine **detaillierte Analyse**: Wellenzählung mit Alternativ-Szenarien, Fibonacci-Kursziele, **Chance/Risiko-Verhältnis**, **Wahrscheinlichkeiten** der Wellenbewegungen und daraus folgende **Gewinn- und Verlustmöglichkeiten in Euro**.
-3. Er leitet eine **Ausstiegsstrategie** ab, die das Budget schützt: Stop an der Elliott-Invalidierung, Teilverkäufe, Break-even-Stop, Trailing-Stop, Zeitstopp, Portfolio-Heat-Grenzen und Drawdown-Notbremse.
+1. Zieht **zufällig Titel aus 200 großen Fonds/ETFs**. Wachstumsmärkte (Schwellenländer) werden 3x, Wachstumsthemen 2x bevorzugt, max. 2 Titel je Region.
+2. Erstellt je Titel eine **detaillierte Analyse**: Wellenzählung mit Alternativ-Szenarien, Fibonacci-Kursziele, Chance/Risiko-Verhältnis, Wahrscheinlichkeiten (Zufallspfad-Simulation plus gemessene Backtest-Trefferquoten), Gewinn- und Verlustmöglichkeiten in Euro, Risiken.
+3. Plant **Einstieg, Ausstieg und Positionsgröße** so, dass das Budget geschützt bleibt, **inklusive aller Gebühren**.
+4. Testet das Regelwerk mit einem **realistischen Portfolio-Backtest** gegen Zufall und Kaufen & Halten.
+5. Führt optional ein **Paper-Depot**. Es werden keine echten Orders gesendet.
 
-Ergebnis ist ein HTML-Report mit Charts (inkl. Dunkelmodus) und ein Markdown-Report. Optional führt der Bot ein **Paper-Depot** und wendet die Ausstiegsregeln täglich auf neue Kurse an. **Es werden keine echten Orders gesendet.**
+> ⚠️ **Bitte zuerst lesen – Ergebnis der kritischen Prüfung:** Auf echten Kursdaten (1990–2021) war die Richtungsprognose der Elliott-Zählung **nicht besser als ein Münzwurf**. Das Regelwerk lag **out-of-sample nach Kosten bei ≈ +0,5 % pro Jahr**, also gleichauf mit zufälligen Einstiegen und weit unter Kaufen & Halten. Nachweisbar wirksam sind die **Schutzmechanismen**: Kostenfilter, Risikobegrenzung und geringere Drawdowns. Ein Ertragsvorteil ist es nicht. Details unten. Keine Anlageberatung.
 
-> ⚠️ Keine Anlageberatung. Die Elliott-Wellen-Theorie ist umstritten, Zählungen sind interpretationsabhängig. Der Bot ist bewusst kritisch gebaut: Er vergleicht jede Prognose mit einem Zufallspfad und prüft per Walk-Forward-Test, ob die Methode beim jeweiligen Titel früher überhaupt funktioniert hat.
+---
+
+## Ergebnis der kritischen Prüfung
+
+### Wie getestet wurde
+
+- **Daten:** 17 echte Instrumente mit echten Tageshochs und -tiefs: SPY, QQQ, IWM, **EEM (Schwellenländer)**, USO, Gold, S&P 500, NASDAQ sowie 9 US-Aktien (AAPL, AIG, BAC, IBM, GOOG, FB, NVDA, ORCL, YHOO), 1990–2021. Quelle sind offene Test- und Beispieldaten von QuantConnect LEAN, backtrader und arch. Die Daten sind split- und dividendenbereinigt; ein fehlender Split (GOOG 2014) wurde repariert. Reproduzierbar mit `tools/fetch_open_data.py`.
+- **Ohne Blick in die Zukunft:** Ein Wellen-Pivot wird erst ab dem Tag seiner Bestätigung verwendet. Ein Test stellt sicher, dass Signale identisch sind, egal ob spätere Kurse vorhanden sind. Eingestiegen wird zum **Eröffnungskurs des Folgetags**.
+- **Realistische Ausführung:** Kurslücken über den Stop werden zum Eröffnungskurs ausgeführt. Berührt ein Tag Stop und Ziel, wird pessimistisch der Stop angenommen. Jede Order kostet Gebühr, Spread und Slippage.
+- **Train/Test:** Regeln ausschließlich auf 1990–2010 ausgewählt, 2011–2021 **einmalig** geprüft.
+- **Benchmarks:** Zufalls-Einstiege mit *identischem* Regelwerk (gleiche Häufigkeit, Stop-Abstände, Ziele, Haltedauer, Trendfilter) sowie Kaufen & Halten.
+- **Kontrolltests:** Auf einem exakten Martingal (faires Spiel) liefern alle Ausstiegsregeln ≈ 0 R. Die Mechanik erzeugt also keinen künstlichen Gewinn.
+
+### 1. Hat die Wellenzählung Vorhersagekraft?
+
+| Richtung der Hauptzählung trifft (20 Tage, trendbereinigt) | 1990–2010 | 2011–2021 |
+|---|---|---|
+| alle Signaltage | 51,5 % | 50,1 % |
+| nur bei hohem Szenario-Konsens (≥ 70 %) | 51,9 % | 48,3 % |
+| Wochenchart statt Tageschart (8 Wochen) | 50,7 % | 49,4 % |
+
+**Münzwurf-Niveau.** Ein schwacher, in beiden Zeiträumen gleichgerichteter Effekt: Im Aufwärtstrend entwickeln sich Kurse nach Elliott-*Korrekturen* (W4, A, C) besser als nach Elliott-*Impulsen* (W3, W5). Die erste Version kaufte genau umgekehrt.
+
+### 2. Portfolio-Backtest (10.000 €, 1 % Risiko je Trade, Neobroker 1 €/Order, Spread 0,15 %)
+
+| | 1990–2010 (Auswahl) | **2011–2021 (Test)** |
+|---|---|---|
+| **v1** (erste Version) | CAGR −0,5 %, max. DD −12,8 %, PF 1,09 | CAGR +0,6 %, max. DD −11,2 %, PF 0,97 |
+| **v2** (jetzt Standard) | CAGR +2,5 %, max. DD −8,4 %, PF 1,56 | **CAGR +0,5 %, max. DD −11,2 %, PF 1,01** |
+| Zufall, gleiches Regelwerk (Median, 10 Läufe) | CAGR +2,6 % (+0,3 … +6,2 %) | CAGR +0,8 % (−1,0 … +2,4 %) |
+| Kaufen & Halten S&P 500 (ohne Kosten) | CAGR +3,7 %, max. DD −55 % | CAGR +14,1 %, max. DD −34 % |
+| Kaufen & Halten EEM (ohne Kosten) | CAGR +22,5 %, max. DD −66 % | CAGR +3,1 %, max. DD −39 % |
+
+v2 ist im Auswahlzeitraum klar besser als v1. **Im Test ist der Vorsprung verschwunden.** v1, v2 und Zufall liegen nach Kosten nahe null. Das Regelwerk ist meist nur zu 10–25 % investiert. Seine Stärke ist der begrenzte Drawdown, nicht die Rendite.
+
+> **Korrektur einer früheren Aussage:** Ein erster Testlauf enthielt zusätzlich 23 Reihen, die nur Schlusskurse hatten, und meldete deshalb +8,5 % CAGR. Ohne echte Tageshochs und -tiefs werden Stops, die im Tagesverlauf ausgelöst würden, nicht erkannt. Das Ergebnis war daher zu optimistisch (nachgewiesen per Simulation: +0,1 bis +0,4 R Scheingewinn je Trade). Der Backtest schließt solche Reihen jetzt automatisch aus (`--allow-close-only` zum Erzwingen).
+
+### 3. Gebühren entscheiden über Gewinn oder Verlust
+
+| v2, 10.000 € Budget | 1990–2010 | 2011–2021 |
+|---|---|---|
+| Neobroker 0 € (nur Spread) | +2,8 % | +0,8 % |
+| Neobroker 1 €/Order (Standard) | +2,5 % | +0,5 % |
+| Direktbank 4,90 € + 0,25 % (mind. 9,90 €) | Kostenfilter: **kein Trade** | Kostenfilter: **kein Trade** |
+| … dieselbe Direktbank *ohne* Kostenfilter | **−0,9 %** | **−2,2 %** |
+
+Mit typischen Bank-Gebühren wäre die Strategie bei 10.000 € **sicher verlustbringend**. Der Kostenfilter verhindert das: Trades, deren Kosten mehr als 15 % des Risikos ausmachen, werden nicht eröffnet.
+
+### Was das für dich bedeutet
+
+- Eine Gewinnerwartung aus der Elliott-Analyse ist **nicht belegt**. Nutze den Bot zum Lernen, Analysieren und im Paper-Depot, nicht als Renditequelle.
+- Wenn du handelst, dann nur mit sehr günstigem Broker, mit eingeschaltetem Kostenfilter und mit höchstens 1 % Risiko je Trade.
+- Prüfe es selbst mit aktuellen Yahoo-Daten deiner Wunsch-ETFs (`backtest`-Befehl unten). Die Validierung oben enthält nur *einen* Schwellenländer-ETF (EEM). Für Wachstumsmärkte ist sie daher nur eingeschränkt aussagekräftig.
+- Vergleiche jedes Ergebnis mit Kaufen & Halten: Ein ETF-Sparplan war in den Testdaten deutlich ertragreicher, allerdings mit viel tieferen Zwischenverlusten.
+
+---
 
 ## Installation
 
@@ -20,7 +77,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Python ≥ 3.11 (wegen `tomllib`).
+Python ≥ 3.11.
 
 ## Benutzung
 
@@ -30,121 +87,119 @@ python -m elliott_bot scan -n 5 --capital 10000
 ```
 
 ```bash
-# Bestimmte Titel analysieren
+# bestimmte Titel; so lange weiterziehen, bis 2 handelbare Signale gefunden sind
 python -m elliott_bot scan --tickers VWO,INDA,EWZ,IS3N.DE
 ```
 
 ```bash
-# Täglicher Bot-Lauf: Paper-Depot fortschreiben (Ausstiege) + neue Titel scannen und Signale eröffnen
+python -m elliott_bot scan -n 5 --min-signals 2 --max-titles 80
+```
+
+```bash
+# Paper-Depot: Orders vom Vortag zum Eröffnungskurs ausführen, Ausstiege anwenden, neue Titel scannen
 python -m elliott_bot run -n 5
 ```
 
 ```bash
-# Nur Depot verwalten (Stops, Teilziele, Trailing, Zeitstopp)
+# nur Depot verwalten
 python -m elliott_bot manage
 ```
 
 ```bash
-# Offline-Demo mit synthetischen Testdaten (keine Internetverbindung nötig)
-python -m elliott_bot scan --provider synthetic -n 8 --seed 42
+# Backtest mit Yahoo-Daten (20 Jahre), Trennung in In-/Out-of-Sample, Zufalls-Benchmark
+python -m elliott_bot backtest --tickers EEM,VWO,INDA,EWZ,EWT,SPY,QQQ --years 20 --split 2016-01-01
 ```
 
 ```bash
-# So lange zufällig weiterziehen, bis 2 handelbare Signale gefunden sind (max. 80 Titel)
-python -m elliott_bot scan -n 5 --min-signals 2 --max-titles 80
+# Ergebnisse dieser README nachrechnen (lädt die offenen Testdaten herunter)
+python tools/fetch_open_data.py data/open
 ```
-
-> **Signale sind bewusst selten.** In Tests lieferte nur etwa jeder 30. bis 100. Titel zum jeweiligen Stichtag ein vollständiges Kaufsignal. Gelockerte Filter (z. B. Szenario-Konsens 50 % statt 55 %) brachten im Walk-Forward-Test mehr Signale, aber keinen Vorsprung mehr gegenüber dem Zufall. Deshalb bleiben die strengen Standardwerte. Häufiger sind **WARTEN**-Setups mit Kaufzone.
-
-Weitere Optionen: `--config config.toml`, `--risk 0.5` (Risiko je Trade in %), `--allow-short`, `--seed` (reproduzierbare Auswahl), `--no-calibration` (schneller), `--provider csv --csv-dir data/` (eigene Kursdateien `TICKER.csv` mit `Date,Open,High,Low,Close,Volume`).
-
-Reports landen in `reports/`, das Paper-Depot in `paper_portfolio.json`.
-
-Für einen täglichen Lauf z. B. per cron (werktags 22:30 Uhr):
 
 ```bash
-30 22 * * 1-5 cd /pfad/zu/TradingPro && .venv/bin/python -m elliott_bot run -n 3 >> bot.log 2>&1
+python -m elliott_bot backtest --provider csv --csv-dir data/open --tickers ALL --split 2011-01-01
 ```
 
-## So funktioniert die Analyse
+```bash
+# zum Vergleich das Verhalten der ersten Version
+python -m elliott_bot backtest --config configs/v1_baseline.toml --provider csv --csv-dir data/open --tickers ALL --split 2011-01-01
+```
 
-| Schritt | Was passiert |
+Weitere Optionen: `--config config.toml`, `--risk 0.5` (Risiko je Trade in %), `--fast` (ohne Backtest je Titel), `--provider csv --csv-dir …` (eigene Dateien `TICKER.csv` mit `Date,Open,High,Low,Close,Volume`), `--provider synthetic` (Offline-Demo mit Kunstdaten), `backtest --learn-stats datei.json` (eigene Setup-Statistik lernen).
+
+Reports landen in `reports/` (HTML mit Charts, hell und dunkel, sowie Markdown), das Paper-Depot in `paper_portfolio.json`.
+
+## Regelwerk v2
+
+| Baustein | Regel |
 |---|---|
-| Pivots | ZigZag auf drei Wellengraden (2,5 / 4 / 6 × ATR) |
-| Zählungen | Alle Muster, die auf dem letzten bestätigten Pivot enden: Welle 3, 4 oder 5 läuft bzw. Korrektur A, B oder C läuft, jeweils auf- und abwärts |
-| Harte Regeln | W2 < 100 % von W1 · W3 nie die kürzeste · keine Überlappung W4/W1 (auch in der laufenden Welle) · B ≤ 138,2 % von A. Verstoß = Zählung verworfen |
-| Richtlinien | Fibonacci-Verhältnisse (W2 50–61,8 %, W3 1,618 × W1, W4 23,6–38,2 %, W5 = W1 …), Alternation, RSI-Divergenz, Volumen → Qualitätsscore |
-| Szenarien | Gewichte aus den Scores inkl. Pseudo-Szenario „keine klare Zählung“ → P(steigend), P(fallend), P(unklar) |
-| Ziele & Stops | Fibonacci-Projektionen der laufenden Welle; Stop am strukturellen Niveau (z. B. Ende Welle 2) ± 0,5 ATR |
+| Wellenzählung | ZigZag auf 3 Graden (2,5 / 4 / 6 ATR). Harte Regeln führen zum Verwerfen: W2 < 100 % von W1, W3 nie die kürzeste, keine W4/W1-Überlappung (auch in der laufenden Welle), B ≤ 138,2 % von A. Fibonacci-Richtlinien, Alternation, RSI-Divergenz und Volumen ergeben den Qualitätsscore. |
+| Trendfilter | Long nur, wenn der Kurs über der *steigenden* 200-Tage-Linie liegt. |
+| Einstieg „both“ | **Rücksetzer-Kauf** während einer Korrektur (W4, A, C) einer Aufwärtsstruktur; zusätzlich Impuls-Einstiege (W3/W5). Ausführung zum nächsten Eröffnungskurs. |
+| Stop | an der Elliott-Invalidierung (z. B. Ende Welle 1 für W4) ± 0,5 ATR; nie enger als 1 ATR. Liegt er weiter als 6 ATR entfernt, gibt es keinen Trade. |
+| Ausstieg | Chandelier-Trailing-Stop 4 ATR ab Einstieg, Struktur-Exit (Schluss unter der Invalidierung), maximale Haltedauer 1,5 x erwartete Wellendauer. |
+| Kosten | Jede Order: feste Gebühr, %-Gebühr bzw. Mindestgebühr, halber Spread und Slippage. Kein Trade, wenn die Kosten > 15 % des Risikos ausmachen. Teilverkäufe werden zusammengelegt, wenn die Gebühr > 0,5 % der Teilorder wäre. |
+| Positionsgröße | Minimum aus 1 % Risiko *inklusive Gebühren*, Viertel-Kelly, 5 % Portfolio-Heat, 2,5 % je Region bzw. korreliertem Cluster (Korrelation der letzten 120 Tage), 20 % je Position, max. 8 Positionen, 10 % Cash-Reserve. |
+| Drawdown-Bremse | ab 10 % Depot-Drawdown halbes Risiko, ab 20 % keine neuen Trades. |
 
-### Wahrscheinlichkeiten – dreistufig und kritisch
+Weitere Ausstiegsmodi (`exits.mode`): `scale_be` (Drittel-Verkäufe, Stop auf Einstand), `scale`, `half`, `target`. Im Backtest waren sie nicht besser.
 
-1. **Zufallspfad:** Block-Bootstrap-Simulation (3.000 Pfade aus den echten Tagesrenditen, *ohne* Drift) des **kompletten Ausstiegsplans**. Ergebnis: Was bringt der Trade, wenn Elliott keinen Vorhersagewert hat?
-2. **Wellen-Edge:** Die Basis-Wahrscheinlichkeit wird proportional zum Szenario-Konsens verschoben, mit einem konservativen Faktor κ = 0,25.
-3. **Walk-Forward-Kalibrierung:** Dieselbe Methode wird auf der Historie des Titels ohne Blick in die Zukunft getestet. Der gemessene Vorsprung gegenüber dem Zufall fließt per Bayes-Mittelung ein. Hat die Methode bei einem Titel historisch schlechter als Zufall abgeschnitten, sinkt die Wahrscheinlichkeit entsprechend.
+## Wahrscheinlichkeiten im Report
 
-Aus der kalibrierten Simulation folgen: P(Hauptziel vor Stop), P(Teilziel 1 vor Stop), P(Zeitstopp), Erwartungswert in R und €, 5-%/95-%-Quantile, CVaR.
+- **Zufallspfad:** Monte-Carlo-Simulation (Block-Bootstrap der echten Tagesrenditen, ohne Drift) des kompletten Ausstiegsplans. Sie zeigt, was der Plan ohne jede Prognosekraft bringt.
+- **Backtest des Setup-Typs:** gemessene Trefferquoten (1. Ziel, Hauptziel) und Ø R dieses Setup-Typs auf den 17 echten Instrumenten (`elliott_bot/data/setup_stats.json`).
+- **Backtest des Titels:** dasselbe Regelwerk auf der eigenen Historie des analysierten Titels.
+- **Kombiniert:** gewichtete Mischung aus Zufallspfad und Backtest (30 Pseudo-Trades Skepsis).
 
-### Signale
+Die Kaufentscheidung hängt **nicht** von diesen Zahlen ab, sondern exakt vom backgetesteten Regelwerk.
 
-| Signal | Bedeutung |
-|---|---|
-| **KAUFEN** / SHORT | Alle Filter erfüllt (CRV ≥ 2, Konsens ≥ 55 %, P(TP1) ≥ 45 %, E[R] ≥ +0,15, Positionsgröße > 0) |
-| **WARTEN** | Korrektur läuft (Welle 4 oder C) – Kaufzone, Stop und Ziel für die nächste Welle werden angegeben |
-| **BEOBACHTEN** | Zählung vorhanden, aber mindestens ein Filter nicht erfüllt (Gründe stehen im Report) |
-| **MEIDEN** | Abwärtsszenario oder keine regelkonforme Zählung |
+## Konfiguration
 
-## Budgetschutz & Ausstiegsstrategie
+`config.example.toml` enthält alle Parameter, darunter Gebührenprofile (Neobroker, Direktbank). Kopieren nach `config.toml` und mit `--config config.toml` verwenden.
 
-**Positionsgröße** = Minimum aus
+## Tests
 
-- fixem Risiko je Trade (Standard 1 % des Kapitals bis zum Stop),
-- Viertel-Kelly aus der simulierten R-Verteilung (f* = E[R] / E[R²]),
-- verbleibender Portfolio-Heat (max. 5 % offenes Gesamtrisiko),
-- verbleibender Regionen-Heat (max. 2,5 % je Region, gegen Klumpenrisiko),
-- max. 20 % des Kapitals je Position,
-- verfügbarem Cash abzüglich 10 % Reserve.
+```bash
+python -m pytest
+```
 
-**Ausstieg** (wird im Paper-Depot täglich automatisch angewendet):
+34 Tests, unter anderem zu:
+- Elliott-Regeln
+- Kausalität der Analyse und der Backtest-Signale
+- exakter Buchhaltung eines Trades
+- Kurslücken
+- Pending-Orders
+- Gebührenmodell und Positionsgröße inklusive Fixgebühren
+- Martingal-Test (Regelwerk auf fairem Spiel ≈ 0)
+- Erkennung von Schlusskurs-Daten
+- Paper-Depot (Ausführung zum nächsten Eröffnungskurs)
+- CLI-Befehle
 
-1. **Initial-Stop** an der Elliott-Invalidierung ± 0,5 ATR (nie enger als 1 ATR; liegt er weiter als 6 ATR entfernt, wird kein Trade eingegangen)
-2. **Teilziel 1** (erstes Fibonacci-Ziel): ⅓ verkaufen, Stop auf Einstand + Kosten → Trade wird risikofrei
-3. **Teilziel 2**: ⅓ verkaufen, Stop auf Teilziel 1
-4. **Rest** mit Chandelier-Trailing-Stop (3 ATR vom Hoch) bis Endziel
-5. **Zeitstopp**: Teilziel 1 nicht innerhalb von 1,5 × erwarteter Wellendauer erreicht → raus
-6. **Struktur-Exit**: Schlusskurs jenseits der Invalidierung → Zählung falsch → raus
-7. **Warnsignal**: Kippt die tägliche Neuanalyse auf ≥ 60 % Gegen-Szenario, wird der Trailing-Stop auf 2 ATR verengt
-8. **Drawdown-Notbremse**: ab 10 % Depot-Drawdown halbes Risiko, ab 20 % keine neuen Trades
+## Grenzen
 
-Kursgaps werden im Paper-Depot realistisch zum Eröffnungskurs abgerechnet.
-
-## Validierung
-
-- 19 automatisierte Tests (`python -m pytest`) prüfen Wellenregeln, Fibonacci-Ziele, Spiegelung für Abwärtstrends, Positionsgröße, Heat-Grenzen, Drawdown-Bremse, die Monte-Carlo-Simulation gegen die theoretische Trefferquote eines Zufallspfads und den kompletten Paper-Trading-Ablauf.
-- Auf **synthetischen Daten mit echter fraktaler Elliott-Struktur** liegt die Walk-Forward-Trefferquote über der Zufallsbasis (≈ 27 % gegenüber 25 % beim Hauptziel, Ø +0,8 R je Signal über 30 Titel). Damit ist belegt, dass die Mechanik vorhandene Wellenstrukturen erkennt und nutzt.
-- **Ob echte Märkte diese Struktur haben, ist damit nicht belegt.** Genau dafür zeigt jeder Report die Walk-Forward-Statistik des jeweiligen Titels. Diese Zahlen sollten vor jeder echten Verwendung kritisch geprüft werden.
-
-## Bekannte Grenzen
-
-- Die Yahoo-Chart-Schnittstelle ist inoffiziell und kann sich ändern oder drosseln. Alternativ eigene CSV-Dateien nutzen.
-- Das Universum (`elliott_bot/data/universe_top200.csv`) ist eine kuratierte Liste großer, liquider ETFs, kein offizielles Live-Ranking. Es lässt sich per `--universe` durch eine eigene Datei ersetzen.
-- Viele US-ETFs sind für EU-Privatanleger nicht kaufbar (PRIIPs). Die Liste enthält daher auch einige Xetra-UCITS-ETFs (`.DE`).
-- Erkannt werden Impulse und Zigzag-Korrekturen. Diagonalen, Dreiecke und komplexe Kombinationen (W-X-Y) werden nicht gesondert modelliert.
+- Die Yahoo-Chart-Schnittstelle ist inoffiziell. Alternativ können eigene CSV-Dateien genutzt werden.
+- Das Universum ist eine kuratierte Liste großer ETFs, kein offizielles Ranking. Viele US-ETFs sind für EU-Privatanleger nicht kaufbar (PRIIPs); dann das UCITS-Pendant nutzen.
+- Diagonalen, Dreiecke und komplexe Korrekturen (W-X-Y) werden nicht modelliert.
+- Überlebende-Verzerrung: Getestet wurde mit heute (oder bis zum Datenende) existierenden Titeln.
 
 ## Projektstruktur
 
 ```
 elliott_bot/
   universe.py      Fonds-Universum & gewichtete Zufallsauswahl
-  data_sources.py  Yahoo / CSV / synthetische Daten
-  pivots.py        ZigZag-Pivots
-  waves.py         Elliott-Zählung, Regeln, Richtlinien, Projektionen
-  strategy.py      Trade-Plan, Setups, Signal-Entscheidung
-  montecarlo.py    Bootstrap-Simulation inkl. Exit-Management
-  calibration.py   Walk-Forward-Test & Bayes-Kalibrierung
-  risk.py          Positionsgröße, Heat, Drawdown-Bremse
-  analyzer.py      Gesamtanalyse je Titel, Risiko-/Chancen-Texte
-  portfolio.py     Paper-Depot mit Ausstiegsregeln
-  report.py        Markdown- & HTML-Report
-  cli.py           Kommandozeile
+  data_sources.py  Yahoo / CSV / synthetische Daten, Erkennung von Schlusskurs-Reihen
+  pivots.py        ZigZag-Pivots mit Bestätigungszeitpunkt
+  waves.py         Elliott-Zählung (kausal zu jedem Zeitpunkt), Regeln, Projektionen
+  strategy.py      Einstiegslogik (Impuls, Rücksetzer, Setups), Trade-Plan
+  execution.py     Orders, Positionen, Ausstiegsregeln (gemeinsam für Backtest & Depot)
+  backtest.py      Portfolio-Backtest, Signal-Studie, Zufalls-/Null-Benchmarks, Kennzahlen
+  bt_report.py     Backtest-Report (HTML/Markdown)
+  setup_stats.py   gelernte Statistik je Setup-Typ
+  montecarlo.py    Bootstrap-Simulation mit identischen Ausstiegsregeln
+  risk.py          Positionsgröße inkl. Gebühren, Heat, Drawdown-Bremse
+  analyzer.py      Gesamtanalyse je Titel, Kosten, Risiken/Chancen
+  portfolio.py     Paper-Depot
+  report.py        Analyse-Report (HTML/Markdown)
+  cli.py           Kommandozeile (scan, run, manage, backtest, universe)
+tools/fetch_open_data.py   offene Testdaten für die Validierung laden
+configs/v1_baseline.toml   Verhalten der ersten Version (Vergleich)
 ```

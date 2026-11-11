@@ -1,0 +1,12 @@
+# Verhalten der ersten Version (v1) – nur zum Vergleich im Backtest:
+#   python -m elliott_bot backtest --config configs/v1_baseline.toml --provider csv --csv-dir data/open --tickers ALL --split 2011-01-01
+[strategy]
+entry_style = "impulse"      # mit der laufenden Welle (W3/W5/...) einsteigen
+trend_filter = "none"
+
+[exits]
+mode = "scale_be"            # Drittel-Verkäufe, Stop auf Einstand nach Ziel 1
+trail_atr_mult = 3.0
+
+[filters]
+max_cost_r = 0.0             # kein Kostenfilter

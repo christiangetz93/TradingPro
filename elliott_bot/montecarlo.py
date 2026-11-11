@@ -1,13 +1,16 @@
-"""Monte-Carlo-Simulation eines Trade-Plans inkl. Ausstiegsregeln.
+"""Monte-Carlo-Simulation eines Trade-Plans inkl. der echten Ausstiegsregeln.
 
 Pfade entstehen per Block-Bootstrap aus den historischen Tagesrenditen des
 Titels (Volatilitäts-Cluster und Fat Tails bleiben erhalten). Die Renditen
-werden um ihren Mittelwert bereinigt; der Drift ist ein expliziter Parameter:
+werden so um ihren Mittelwert bereinigt, dass der Kurs ohne Drift ein faires
+Spiel ist; der Drift ist ein expliziter Parameter:
 
-* drift = 0  -> "Zufallspfad": Was bringt der Plan, wenn die Wellenanalyse
-               KEINEN Vorhersagewert hat? (kritischer Benchmark)
-* drift > 0  -> kalibrierter Drift, bei dem die Treffer-Wahrscheinlichkeit
-               der des Modells entspricht.
+* drift = 0  -> "Zufallspfad": Was bringt der Plan, wenn die Analyse KEINEN
+               Vorhersagewert hat? (kritischer Benchmark)
+* drift ≠ 0  -> Drift, bei dem die Treffer-Wahrscheinlichkeit der
+               empirischen Setup-Statistik entspricht.
+
+Die Ausstiegslogik ist dieselbe wie in execution.process_bar (vektorisiert).
 """
 from __future__ import annotations
 
@@ -17,17 +20,18 @@ import numpy as np
 import pandas as pd
 
 from .config import BotConfig
+from .execution import EXIT_MODES
 from .strategy import TradePlan
 
 
 @dataclass
 class MCResult:
     drift: float
-    p_tp1: float           # TP1 vor Initial-Stop
-    p_main: float          # Hauptziel vor Initial-Stop (reine Barriere)
-    p_stop_first: float    # Initial-Stop vor TP1
-    p_time_exit: float     # Zeitstopp ohne Zielerreichung
-    r: np.ndarray          # realisierte R-Vielfache je Pfad (mit Exit-Management)
+    p_tp1: float           # erstes Kursziel vor Initial-Stop erreicht
+    p_main: float          # Hauptziel vor Initial-Stop erreicht (reine Barriere)
+    p_stop_first: float    # Initial-Stop vor dem ersten Kursziel
+    p_time_exit: float     # Zeitstopp / maximale Haltedauer
+    r: np.ndarray          # realisierte R-Vielfache je Pfad (nach variablen Kosten)
     avg_bars: float
 
     @property
@@ -62,10 +66,9 @@ class BootstrapSampler:
         d = df.iloc[-(window + 1):]
         c = d["close"].to_numpy(float)
         r = np.diff(np.log(c))
-        up = np.log(d["high"].to_numpy(float)[1:] / c[1:])
-        dn = np.log(d["low"].to_numpy(float)[1:] / c[1:])
-        self.r = r - r.mean()
-        self.up, self.dn = up, dn
+        self.up = np.log(d["high"].to_numpy(float)[1:] / c[1:])
+        self.dn = np.log(d["low"].to_numpy(float)[1:] / c[1:])
+        self.r = r - np.log(np.mean(np.exp(r)))          # fairer Kurs: E[exp(r)] = 1
         self.sigma = float(r.std())
         n = len(r)
         block = max(1, min(block, n // 4))
@@ -84,7 +87,7 @@ class BootstrapSampler:
 def simulate_plan(plan: TradePlan, sampler: BootstrapSampler, cfg: BotConfig,
                   drift: float = 0.0) -> MCResult:
     ex = cfg.exits
-    cost = cfg.budget.fee_pct + cfg.budget.slippage_pct
+    v = cfg.costs.variable_rate()
     s = plan.side
     close, high, low = sampler.paths(plan.entry, s * drift)
     if s == 1:
@@ -92,13 +95,19 @@ def simulate_plan(plan: TradePlan, sampler: BootstrapSampler, cfg: BotConfig,
     else:
         cq, hq, lq = -close, -low, -high
     e, st0 = s * plan.entry, s * plan.stop
-    t1, t2, t3 = (s * p for _, p in plan.levels)
+    inv = s * plan.invalidation
+    tp1 = s * plan.levels[0][1]
     main = s * plan.main_target[1]
+    _, be_after, prev_leg, trail_start = EXIT_MODES.get(plan.exit_mode, EXIT_MODES["trail"])
+    legs_q = [s * lg[1] for lg in plan.legs]
+    legs_f = [lg[2] for lg in plan.legs]
+    full = sum(legs_f) >= 0.999
+    trail_mult = ex.trail_atr_mult if trail_start else 0.0
     P, H = cq.shape
     H = min(H, max(plan.time_stop_bars * 2, plan.time_stop_bars + 5))
 
     stop = np.full(P, st0)
-    stage = np.zeros(P, dtype=int)
+    nxt = np.zeros(P, dtype=int)
     rem = np.ones(P)
     pnl = np.zeros(P)
     done = np.zeros(P, dtype=bool)
@@ -109,60 +118,56 @@ def simulate_plan(plan: TradePlan, sampler: BootstrapSampler, cfg: BotConfig,
     b_tp1 = np.zeros(P, dtype=bool)
     b_main = np.zeros(P, dtype=bool)
     b_stop_first = np.zeros(P, dtype=bool)
-    be_level = e + cost * 2 * abs(e)
-    f1, f2 = ex.tp1_fraction, ex.tp2_fraction
+    be_level = e + v * 2 * abs(e)
+
+    def close_out(mask, price, bar):
+        nonlocal pnl, rem, done
+        pnl += np.where(mask, rem * (price - e), 0.0)
+        rem = np.where(mask, 0.0, rem)
+        exit_bar[mask] = bar
+        done |= mask
 
     for t in range(H):
         h, lo, c = hq[:, t], lq[:, t], cq[:, t]
-        # Barriere-Statistik (unabhängig vom Management; pessimistisch: Stop zuerst)
-        bd = ~b_done
+        bd = ~b_done                                     # Barriere-Statistik
         sl = bd & (lo <= st0)
         b_stop_first |= sl & ~b_tp1
         ok = bd & ~sl
-        b_tp1 |= ok & (h >= t1)
+        b_tp1 |= ok & (h >= tp1)
         hit_main = ok & (h >= main)
         b_main |= hit_main
         b_done |= sl | hit_main
 
-        # Exit-Management
-        a = ~done
-        hit = a & (lo <= stop)
-        pnl += np.where(hit, rem * (stop - e), 0.0)
-        rem = np.where(hit, 0.0, rem)
-        exit_bar[hit] = t
-        done |= hit
-        a = ~done
-        s0 = a & (stage == 0) & (h >= t1)
-        pnl += np.where(s0, f1 * (t1 - e), 0.0)
-        rem = np.where(s0, rem - f1, rem)
-        stage[s0] = 1
-        stop = np.where(s0, np.maximum(stop, be_level), stop)
-        s1 = a & (stage == 1) & (h >= t2)
-        pnl += np.where(s1, f2 * (t2 - e), 0.0)
-        rem = np.where(s1, rem - f2, rem)
-        stage[s1] = 2
-        stop = np.where(s1, np.maximum(stop, t1), stop)
-        s2 = a & (stage == 2) & (h >= t3)
-        pnl += np.where(s2, rem * (t3 - e), 0.0)
-        rem = np.where(s2, 0.0, rem)
-        exit_bar[s2] = t
-        done |= s2
+        a = ~done                                        # Ausstiegsregeln
+        close_out(a & (lo <= stop), stop, t)
+        for k, (lvl, frac) in enumerate(zip(legs_q, legs_f)):
+            m = ~done & (nxt == k) & (h >= lvl)
+            last = full and k == len(legs_q) - 1
+            sell = rem if last else np.minimum(rem, frac)
+            pnl += np.where(m, sell * (lvl - e), 0.0)
+            rem = np.where(m, rem - sell, rem)
+            nxt = np.where(m, k + 1, nxt)
+            if k == 0 and be_after:
+                stop = np.where(m, np.maximum(stop, be_level), stop)
+            if k >= 1 and prev_leg:
+                stop = np.where(m, np.maximum(stop, legs_q[k - 1]), stop)
+            fin = m & (rem <= 1e-12)
+            exit_bar[fin] = t
+            done |= fin
         highest = np.maximum(highest, h)
-        trail = highest - ex.trail_atr_mult * plan.atr
-        stop = np.where((stage >= 1) & ~done, np.maximum(stop, trail), stop)
+        if trail_mult > 0:
+            active = ~done & ((nxt > 0) | (trail_start == "entry"))
+            stop = np.where(active, np.maximum(stop, highest - trail_mult * plan.atr), stop)
+        close_out(~done & (c < inv), c, t)
         if t == plan.time_stop_bars - 1:
-            ts = ~done & (stage == 0)
-            pnl += np.where(ts, rem * (c - e), 0.0)
-            rem = np.where(ts, 0.0, rem)
-            exit_bar[ts] = t
+            ts = ~done & (nxt == 0)
             time_exit |= ts
-            done |= ts
+            close_out(ts, c, t)
         if done.all():
             break
 
-    open_ = ~done
-    pnl += np.where(open_, rem * (cq[:, H - 1] - e), 0.0)
-    pnl -= cost * 2 * abs(e)
+    close_out(~done, cq[:, H - 1], H - 1)
+    pnl -= v * 2 * abs(e)
     r = pnl / plan.risk_per_unit
     return MCResult(drift=drift, p_tp1=float(b_tp1.mean()), p_main=float(b_main.mean()),
                     p_stop_first=float(b_stop_first.mean()), p_time_exit=float(time_exit.mean()),
