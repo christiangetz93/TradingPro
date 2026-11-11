@@ -1,0 +1,53 @@
+# Beispielkonfiguration – kopieren nach config.toml und anpassen:
+#   python -m elliott_bot scan --config config.toml
+
+[budget]
+capital = 10000.0            # verfügbares Budget
+currency = "EUR"
+risk_per_trade = 0.01        # max. 1 % Verlust je Trade (bis zum Stop)
+max_portfolio_heat = 0.05    # max. 5 % offenes Risiko über alle Positionen
+max_cluster_heat = 0.025     # max. 2,5 % offenes Risiko je Region
+max_position_pct = 0.20      # max. 20 % des Kapitals in einem Titel
+min_cash_reserve_pct = 0.10  # 10 % bleiben immer Cash
+kelly_fraction = 0.25        # höchstens Viertel-Kelly
+allow_fractional_shares = false
+allow_short = false
+fee_pct = 0.001              # 0,1 % Gebühren je Seite
+slippage_pct = 0.0005
+drawdown_soft = 0.10         # ab 10 % Depot-Drawdown: Risiko halbieren
+drawdown_hard = 0.20         # ab 20 %: keine neuen Trades
+
+[filters]
+min_crv = 2.0
+min_probability = 0.20       # P(Hauptziel vor Stop)
+min_tp1_probability = 0.45   # P(Teilziel 1 vor Stop)
+min_expected_r = 0.15
+min_consensus = 0.55
+min_count_score = 0.40
+max_crv_for_probability = 8.0
+
+[exits]
+stop_atr_buffer = 0.5
+max_stop_atr = 6.0
+min_stop_atr = 1.0
+tp1_fraction = 0.3333
+tp2_fraction = 0.3333
+trail_atr_mult = 3.0
+tight_trail_atr_mult = 2.0
+time_stop_factor = 1.5
+min_time_stop_bars = 10
+
+[analysis]
+lookback_bars = 750
+zigzag_atr_mults = [2.5, 4.0, 6.0]
+require_confirmed_pivot = true
+unclear_weight = 0.45
+edge_kappa = 0.25
+mc_paths = 3000
+calibrate = true
+
+[selection]
+n_titles = 5
+em_weight = 3.0              # Schwellenländer 3x so wahrscheinlich
+growth_theme_weight = 2.0    # Wachstumsthemen 2x
+max_per_region = 2

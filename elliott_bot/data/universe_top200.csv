@@ -1,0 +1,201 @@
+ticker,name,region,asset_class,segment,em,growth_theme
+SPY,SPDR S&P 500 ETF Trust,USA,Aktien,Large Cap,0,0
+IVV,iShares Core S&P 500 ETF,USA,Aktien,Large Cap,0,0
+VOO,Vanguard S&P 500 ETF,USA,Aktien,Large Cap,0,0
+VTI,Vanguard Total Stock Market ETF,USA,Aktien,Gesamtmarkt,0,0
+QQQ,Invesco QQQ Trust (Nasdaq-100),USA,Aktien,Technologie/Growth,0,1
+VUG,Vanguard Growth ETF,USA,Aktien,Growth,0,1
+VTV,Vanguard Value ETF,USA,Aktien,Value,0,0
+IWF,iShares Russell 1000 Growth ETF,USA,Aktien,Growth,0,1
+IWD,iShares Russell 1000 Value ETF,USA,Aktien,Value,0,0
+IJH,iShares Core S&P Mid-Cap ETF,USA,Aktien,Mid Cap,0,0
+IJR,iShares Core S&P Small-Cap ETF,USA,Aktien,Small Cap,0,0
+IWM,iShares Russell 2000 ETF,USA,Aktien,Small Cap,0,0
+VO,Vanguard Mid-Cap ETF,USA,Aktien,Mid Cap,0,0
+VB,Vanguard Small-Cap ETF,USA,Aktien,Small Cap,0,0
+VIG,Vanguard Dividend Appreciation ETF,USA,Aktien,Dividende,0,0
+VYM,Vanguard High Dividend Yield ETF,USA,Aktien,Dividende,0,0
+SCHD,Schwab US Dividend Equity ETF,USA,Aktien,Dividende,0,0
+RSP,Invesco S&P 500 Equal Weight ETF,USA,Aktien,Large Cap,0,0
+IVW,iShares S&P 500 Growth ETF,USA,Aktien,Growth,0,1
+SCHG,Schwab US Large-Cap Growth ETF,USA,Aktien,Growth,0,1
+MGK,Vanguard Mega Cap Growth ETF,USA,Aktien,Growth,0,1
+DIA,SPDR Dow Jones Industrial Average ETF,USA,Aktien,Large Cap,0,0
+VBK,Vanguard Small-Cap Growth ETF,USA,Aktien,Small Cap Growth,0,1
+USMV,iShares MSCI USA Min Vol Factor ETF,USA,Aktien,Faktor,0,0
+QUAL,iShares MSCI USA Quality Factor ETF,USA,Aktien,Faktor,0,0
+MTUM,iShares MSCI USA Momentum Factor ETF,USA,Aktien,Faktor,0,0
+DGRO,iShares Core Dividend Growth ETF,USA,Aktien,Dividende,0,0
+NOBL,ProShares S&P 500 Dividend Aristocrats ETF,USA,Aktien,Dividende,0,0
+SPYG,SPDR Portfolio S&P 500 Growth ETF,USA,Aktien,Growth,0,1
+JEPI,JPMorgan Equity Premium Income ETF,USA,Aktien,Income,0,0
+XLK,Technology Select Sector SPDR Fund,USA,Aktien,Sektor Technologie,0,1
+VGT,Vanguard Information Technology ETF,USA,Aktien,Sektor Technologie,0,1
+XLC,Communication Services Select Sector SPDR,USA,Aktien,Sektor Kommunikation,0,1
+XLF,Financial Select Sector SPDR Fund,USA,Aktien,Sektor Finanzen,0,0
+XLV,Health Care Select Sector SPDR Fund,USA,Aktien,Sektor Gesundheit,0,0
+XLE,Energy Select Sector SPDR Fund,USA,Aktien,Sektor Energie,0,0
+XLI,Industrial Select Sector SPDR Fund,USA,Aktien,Sektor Industrie,0,0
+XLY,Consumer Discretionary Select Sector SPDR,USA,Aktien,Sektor Zykl. Konsum,0,0
+XLP,Consumer Staples Select Sector SPDR,USA,Aktien,Sektor Basiskonsum,0,0
+XLU,Utilities Select Sector SPDR Fund,USA,Aktien,Sektor Versorger,0,0
+XLB,Materials Select Sector SPDR Fund,USA,Aktien,Sektor Rohstoffe,0,0
+XLRE,Real Estate Select Sector SPDR Fund,USA,Immobilien,REITs,0,0
+VHT,Vanguard Health Care ETF,USA,Aktien,Sektor Gesundheit,0,0
+VNQ,Vanguard Real Estate ETF,USA,Immobilien,REITs,0,0
+KRE,SPDR S&P Regional Banking ETF,USA,Aktien,Regionalbanken,0,0
+ITA,iShares US Aerospace & Defense ETF,USA,Aktien,Luftfahrt/Verteidigung,0,0
+XHB,SPDR S&P Homebuilders ETF,USA,Aktien,Bau,0,0
+XME,SPDR S&P Metals & Mining ETF,USA,Aktien,Bergbau,0,0
+XOP,SPDR S&P Oil & Gas Exploration & Production,USA,Aktien,Öl & Gas,0,0
+OIH,VanEck Oil Services ETF,USA,Aktien,Öl-Services,0,0
+XRT,SPDR S&P Retail ETF,USA,Aktien,Einzelhandel,0,0
+IHI,iShares US Medical Devices ETF,USA,Aktien,Medizintechnik,0,0
+PAVE,Global X US Infrastructure Development ETF,USA,Aktien,Infrastruktur,0,0
+GDX,VanEck Gold Miners ETF,Global,Aktien,Goldminen,0,0
+GDXJ,VanEck Junior Gold Miners ETF,Global,Aktien,Goldminen,0,0
+SMH,VanEck Semiconductor ETF,Global,Aktien,Halbleiter,0,1
+SOXX,iShares Semiconductor ETF,USA,Aktien,Halbleiter,0,1
+ARKK,ARK Innovation ETF,Global,Aktien,Disruptive Innovation,0,1
+ARKW,ARK Next Generation Internet ETF,Global,Aktien,Internet,0,1
+ARKG,ARK Genomic Revolution ETF,Global,Aktien,Genomik,0,1
+BOTZ,Global X Robotics & Artificial Intelligence ETF,Global,Aktien,Robotik/KI,0,1
+ROBO,ROBO Global Robotics & Automation ETF,Global,Aktien,Robotik,0,1
+AIQ,Global X Artificial Intelligence & Technology ETF,Global,Aktien,Künstliche Intelligenz,0,1
+IGV,iShares Expanded Tech-Software Sector ETF,USA,Aktien,Software,0,1
+CIBR,First Trust NASDAQ Cybersecurity ETF,Global,Aktien,Cybersecurity,0,1
+SKYY,First Trust Cloud Computing ETF,Global,Aktien,Cloud,0,1
+CLOU,Global X Cloud Computing ETF,Global,Aktien,Cloud,0,1
+FINX,Global X FinTech ETF,Global,Aktien,FinTech,0,1
+FDN,First Trust Dow Jones Internet Index Fund,USA,Aktien,Internet,0,1
+IBB,iShares Biotechnology ETF,USA,Aktien,Biotech,0,1
+XBI,SPDR S&P Biotech ETF,USA,Aktien,Biotech,0,1
+ICLN,iShares Global Clean Energy ETF,Global,Aktien,Saubere Energie,0,1
+TAN,Invesco Solar ETF,Global,Aktien,Solar,0,1
+QCLN,First Trust NASDAQ Clean Edge Green Energy,Global,Aktien,Saubere Energie,0,1
+LIT,Global X Lithium & Battery Tech ETF,Global,Aktien,Batterien/Lithium,0,1
+URA,Global X Uranium ETF,Global,Aktien,Uran,0,1
+DRIV,Global X Autonomous & Electric Vehicles ETF,Global,Aktien,E-Mobilität,0,1
+BLOK,Amplify Transformational Data Sharing ETF,Global,Aktien,Blockchain,0,1
+REMX,VanEck Rare Earth and Strategic Metals ETF,Global,Aktien,Seltene Erden,0,1
+VEA,Vanguard FTSE Developed Markets ETF,Industrieländer,Aktien,ex USA,0,0
+IEFA,iShares Core MSCI EAFE ETF,Industrieländer,Aktien,ex USA,0,0
+EFA,iShares MSCI EAFE ETF,Industrieländer,Aktien,ex USA,0,0
+VXUS,Vanguard Total International Stock ETF,Welt ex USA,Aktien,ex USA,0,0
+SCHF,Schwab International Equity ETF,Industrieländer,Aktien,ex USA,0,0
+VSS,Vanguard FTSE All-World ex-US Small-Cap ETF,Welt ex USA,Aktien,Small Cap,0,0
+EFG,iShares MSCI EAFE Growth ETF,Industrieländer,Aktien,Growth,0,1
+ACWI,iShares MSCI ACWI ETF,Welt,Aktien,Welt,0,0
+VT,Vanguard Total World Stock ETF,Welt,Aktien,Welt,0,0
+URTH,iShares MSCI World ETF,Welt,Aktien,Welt,0,0
+VGK,Vanguard FTSE Europe ETF,Europa,Aktien,Europa,0,0
+EZU,iShares MSCI Eurozone ETF,Europa,Aktien,Eurozone,0,0
+FEZ,SPDR EURO STOXX 50 ETF,Europa,Aktien,Eurozone,0,0
+EWG,iShares MSCI Germany ETF,Europa,Aktien,Deutschland,0,0
+EWU,iShares MSCI United Kingdom ETF,Europa,Aktien,Großbritannien,0,0
+EWQ,iShares MSCI France ETF,Europa,Aktien,Frankreich,0,0
+EWL,iShares MSCI Switzerland ETF,Europa,Aktien,Schweiz,0,0
+EWP,iShares MSCI Spain ETF,Europa,Aktien,Spanien,0,0
+EWI,iShares MSCI Italy ETF,Europa,Aktien,Italien,0,0
+EWJ,iShares MSCI Japan ETF,Japan,Aktien,Japan,0,0
+DXJ,WisdomTree Japan Hedged Equity Fund,Japan,Aktien,Japan (währungsgesichert),0,0
+EWC,iShares MSCI Canada ETF,Kanada,Aktien,Kanada,0,0
+EWA,iShares MSCI Australia ETF,Pazifik,Aktien,Australien,0,0
+EWH,iShares MSCI Hong Kong ETF,Pazifik,Aktien,Hongkong,0,0
+EIS,iShares MSCI Israel ETF,Naher Osten,Aktien,Israel,0,0
+VWO,Vanguard FTSE Emerging Markets ETF,Schwellenländer,Aktien,EM breit,1,0
+IEMG,iShares Core MSCI Emerging Markets ETF,Schwellenländer,Aktien,EM breit,1,0
+EEM,iShares MSCI Emerging Markets ETF,Schwellenländer,Aktien,EM breit,1,0
+SCHE,Schwab Emerging Markets Equity ETF,Schwellenländer,Aktien,EM breit,1,0
+SPEM,SPDR Portfolio Emerging Markets ETF,Schwellenländer,Aktien,EM breit,1,0
+EEMV,iShares MSCI Emerging Markets Min Vol Factor,Schwellenländer,Aktien,EM Min Vol,1,0
+EMXC,iShares MSCI Emerging Markets ex China ETF,Schwellenländer,Aktien,EM ex China,1,0
+XSOE,WisdomTree Emerging Markets ex-State-Owned Enterprises,Schwellenländer,Aktien,EM Qualität,1,0
+FRDM,Freedom 100 Emerging Markets ETF,Schwellenländer,Aktien,EM Faktor,1,0
+DEM,WisdomTree Emerging Markets High Dividend Fund,Schwellenländer,Aktien,EM Dividende,1,0
+EEMS,iShares MSCI Emerging Markets Small-Cap ETF,Schwellenländer,Aktien,EM Small Cap,1,0
+EWX,SPDR S&P Emerging Markets Small Cap ETF,Schwellenländer,Aktien,EM Small Cap,1,0
+AVEM,Avantis Emerging Markets Equity ETF,Schwellenländer,Aktien,EM Faktor,1,0
+DFEM,Dimensional Emerging Markets Core Equity 2 ETF,Schwellenländer,Aktien,EM Faktor,1,0
+ESGE,iShares ESG Aware MSCI EM ETF,Schwellenländer,Aktien,EM ESG,1,0
+EDIV,SPDR S&P Emerging Markets Dividend ETF,Schwellenländer,Aktien,EM Dividende,1,0
+EMQQ,EMQQ The Emerging Markets Internet ETF,Schwellenländer,Aktien,EM Internet,1,1
+FM,iShares MSCI Frontier and Select EM ETF,Frontier Markets,Aktien,Frontier,1,0
+INDA,iShares MSCI India ETF,Indien,Aktien,Indien,1,0
+EPI,WisdomTree India Earnings Fund,Indien,Aktien,Indien,1,0
+INDY,iShares India 50 ETF,Indien,Aktien,Indien,1,0
+SMIN,iShares MSCI India Small-Cap ETF,Indien,Aktien,Indien Small Cap,1,0
+PIN,Invesco India ETF,Indien,Aktien,Indien,1,0
+FLIN,Franklin FTSE India ETF,Indien,Aktien,Indien,1,0
+GLIN,VanEck India Growth Leaders ETF,Indien,Aktien,Indien Growth,1,1
+MCHI,iShares MSCI China ETF,China,Aktien,China,1,0
+FXI,iShares China Large-Cap ETF,China,Aktien,China,1,0
+GXC,SPDR S&P China ETF,China,Aktien,China,1,0
+FLCH,Franklin FTSE China ETF,China,Aktien,China,1,0
+KWEB,KraneShares CSI China Internet ETF,China,Aktien,China Internet,1,1
+CQQQ,Invesco China Technology ETF,China,Aktien,China Technologie,1,1
+ASHR,Xtrackers Harvest CSI 300 China A-Shares ETF,China,Aktien,China A-Aktien,1,0
+KBA,KraneShares Bosera MSCI China A 50 Connect,China,Aktien,China A-Aktien,1,0
+CHIQ,Global X MSCI China Consumer Discretionary ETF,China,Aktien,China Konsum,1,0
+ECNS,iShares MSCI China Small-Cap ETF,China,Aktien,China Small Cap,1,0
+EWT,iShares MSCI Taiwan ETF,Taiwan,Aktien,Taiwan,1,1
+EWY,iShares MSCI South Korea ETF,Südkorea,Aktien,Südkorea,1,0
+AAXJ,iShares MSCI All Country Asia ex Japan ETF,Asien ex Japan,Aktien,Asien,1,0
+EEMA,iShares MSCI Emerging Markets Asia ETF,Asien ex Japan,Aktien,EM Asien,1,0
+ASEA,Global X FTSE Southeast Asia ETF,Südostasien,Aktien,ASEAN,1,0
+VNM,VanEck Vietnam ETF,Südostasien,Aktien,Vietnam,1,0
+EIDO,iShares MSCI Indonesia ETF,Südostasien,Aktien,Indonesien,1,0
+THD,iShares MSCI Thailand ETF,Südostasien,Aktien,Thailand,1,0
+EPHE,iShares MSCI Philippines ETF,Südostasien,Aktien,Philippinen,1,0
+EWM,iShares MSCI Malaysia ETF,Südostasien,Aktien,Malaysia,1,0
+EWZ,iShares MSCI Brazil ETF,Lateinamerika,Aktien,Brasilien,1,0
+EWZS,iShares MSCI Brazil Small-Cap ETF,Lateinamerika,Aktien,Brasilien Small Cap,1,0
+EWW,iShares MSCI Mexico ETF,Lateinamerika,Aktien,Mexiko,1,0
+ILF,iShares Latin America 40 ETF,Lateinamerika,Aktien,Lateinamerika,1,0
+ECH,iShares MSCI Chile ETF,Lateinamerika,Aktien,Chile,1,0
+EPU,iShares MSCI Peru and Global Exposure ETF,Lateinamerika,Aktien,Peru,1,0
+ARGT,Global X MSCI Argentina ETF,Lateinamerika,Aktien,Argentinien,1,0
+GXG,Global X MSCI Colombia ETF,Lateinamerika,Aktien,Kolumbien,1,0
+EZA,iShares MSCI South Africa ETF,Afrika/Nahost,Aktien,Südafrika,1,0
+AFK,VanEck Africa Index ETF,Afrika/Nahost,Aktien,Afrika,1,0
+KSA,iShares MSCI Saudi Arabia ETF,Afrika/Nahost,Aktien,Saudi-Arabien,1,0
+UAE,iShares MSCI UAE ETF,Afrika/Nahost,Aktien,VAE,1,0
+QAT,iShares MSCI Qatar ETF,Afrika/Nahost,Aktien,Katar,1,0
+TUR,iShares MSCI Turkey ETF,Osteuropa,Aktien,Türkei,1,0
+EPOL,iShares MSCI Poland ETF,Osteuropa,Aktien,Polen,1,0
+GREK,Global X MSCI Greece ETF,Osteuropa,Aktien,Griechenland,1,0
+EMB,iShares J.P. Morgan USD Emerging Markets Bond ETF,Schwellenländer,Anleihen,EM Staatsanleihen USD,1,0
+VWOB,Vanguard Emerging Markets Government Bond ETF,Schwellenländer,Anleihen,EM Staatsanleihen USD,1,0
+EMLC,VanEck J.P. Morgan EM Local Currency Bond ETF,Schwellenländer,Anleihen,EM Lokalwährung,1,0
+PCY,Invesco Emerging Markets Sovereign Debt ETF,Schwellenländer,Anleihen,EM Staatsanleihen USD,1,0
+BND,Vanguard Total Bond Market ETF,USA,Anleihen,Aggregate,0,0
+AGG,iShares Core US Aggregate Bond ETF,USA,Anleihen,Aggregate,0,0
+BNDX,Vanguard Total International Bond ETF,Welt ex USA,Anleihen,Aggregate (gesichert),0,0
+TLT,iShares 20+ Year Treasury Bond ETF,USA,Anleihen,Staatsanleihen lang,0,0
+IEF,iShares 7-10 Year Treasury Bond ETF,USA,Anleihen,Staatsanleihen mittel,0,0
+SHY,iShares 1-3 Year Treasury Bond ETF,USA,Anleihen,Staatsanleihen kurz,0,0
+LQD,iShares iBoxx USD Investment Grade Corporate Bond,USA,Anleihen,Unternehmensanleihen IG,0,0
+HYG,iShares iBoxx USD High Yield Corporate Bond,USA,Anleihen,High Yield,0,0
+VCIT,Vanguard Intermediate-Term Corporate Bond ETF,USA,Anleihen,Unternehmensanleihen IG,0,0
+TIP,iShares TIPS Bond ETF,USA,Anleihen,Inflationsgeschützt,0,0
+GLD,SPDR Gold Shares,Global,Rohstoffe,Gold,0,0
+IAU,iShares Gold Trust,Global,Rohstoffe,Gold,0,0
+SLV,iShares Silver Trust,Global,Rohstoffe,Silber,0,0
+PPLT,abrdn Physical Platinum Shares ETF,Global,Rohstoffe,Platin,0,0
+CPER,United States Copper Index Fund,Global,Rohstoffe,Kupfer,0,0
+COPX,Global X Copper Miners ETF,Global,Aktien,Kupferminen,0,0
+DBC,Invesco DB Commodity Index Tracking Fund,Global,Rohstoffe,Rohstoffkorb,0,0
+DBA,Invesco DB Agriculture Fund,Global,Rohstoffe,Agrar,0,0
+USO,United States Oil Fund,Global,Rohstoffe,Rohöl,0,0
+VNQI,Vanguard Global ex-US Real Estate ETF,Welt ex USA,Immobilien,REITs,0,0
+REET,iShares Global REIT ETF,Welt,Immobilien,REITs,0,0
+EUNL.DE,iShares Core MSCI World UCITS ETF (Xetra),Welt,Aktien,Welt (UCITS),0,0
+VWCE.DE,Vanguard FTSE All-World UCITS ETF Acc (Xetra),Welt,Aktien,Welt (UCITS),0,0
+SXR8.DE,iShares Core S&P 500 UCITS ETF (Xetra),USA,Aktien,Large Cap (UCITS),0,0
+SXRV.DE,iShares Nasdaq 100 UCITS ETF (Xetra),USA,Aktien,Technologie/Growth (UCITS),0,1
+EXS1.DE,iShares Core DAX UCITS ETF (Xetra),Europa,Aktien,Deutschland (UCITS),0,0
+EUNK.DE,iShares Core MSCI Europe UCITS ETF (Xetra),Europa,Aktien,Europa (UCITS),0,0
+IS3N.DE,iShares Core MSCI EM IMI UCITS ETF (Xetra),Schwellenländer,Aktien,EM breit (UCITS),1,0
+VFEM.DE,Vanguard FTSE Emerging Markets UCITS ETF (Xetra),Schwellenländer,Aktien,EM breit (UCITS),1,0
+XMME.DE,Xtrackers MSCI Emerging Markets UCITS ETF (Xetra),Schwellenländer,Aktien,EM breit (UCITS),1,0
+QDV5.DE,iShares MSCI India UCITS ETF (Xetra),Indien,Aktien,Indien (UCITS),1,0

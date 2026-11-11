@@ -1,0 +1,34 @@
+"""Technische Hilfsindikatoren."""
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    prev_close = df["close"].shift(1)
+    tr = pd.concat([
+        df["high"] - df["low"],
+        (df["high"] - prev_close).abs(),
+        (df["low"] - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    out = tr.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    return out.bfill()
+
+
+def rsi(close: pd.Series, period: int = 14) -> pd.Series:
+    delta = close.diff()
+    up = delta.clip(lower=0).ewm(alpha=1 / period, adjust=False).mean()
+    down = (-delta.clip(upper=0)).ewm(alpha=1 / period, adjust=False).mean()
+    rs = up / down.replace(0, np.nan)
+    return (100 - 100 / (1 + rs)).fillna(50.0)
+
+
+def max_drawdown(close: pd.Series) -> float:
+    peak = close.cummax()
+    return float((close / peak - 1).min())
+
+
+def annual_volatility(close: pd.Series) -> float:
+    r = np.log(close).diff().dropna()
+    return float(r.std() * np.sqrt(252))
